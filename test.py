@@ -6,7 +6,6 @@ Testing code for the FP-growth implementation.
 
 import unittest
 import fp_growth
-from itertools import izip
 
 class NodeTester(object):
     def __init__(self, case, node):
@@ -15,7 +14,7 @@ class NodeTester(object):
 
     def child(self, item, count=None):
         c = self.node.search(item)
-        self.case.failIf(c is None, 'no child with item %s' % item)
+        self.case.assertFalse(c is None, 'no child with item {}'.format(item))
 
         tester = NodeTester(self.case, c)
         if count is not None:
@@ -24,8 +23,7 @@ class NodeTester(object):
 
     def count(self, count):
         self.case.assertEqual(self.node.count, count,
-            'expected count to be %d; instead it was %d' %
-            (count, self.node.count))
+            'expected count to be {}; instead it was {}'.format(count, self.node.count))
         return self
 
     def leaf(self):
@@ -45,9 +43,9 @@ class TreeTestCase(unittest.TestCase):
         actual = list(actual)
         self.assertEqual(len(expected), len(actual))
 
-        for items, path in izip(expected, actual):
+        for items, path in zip(expected, actual):
             self.assertEqual(len(items), len(path))
-            for item, node in izip(items, path):
+            for item, node in zip(items, path):
                 self.assertEqual(item, node.item)
 
 
@@ -164,8 +162,10 @@ class FrequentSetTests(unittest.TestCase):
         transactions = [line.split(',') for line in raw.split(';')]
 
         itemsets = list(fp_growth.find_frequent_itemsets(transactions, 2))
-        self.assertEqual([['25'], ['52', '25'], ['274'], ['71'], ['52']],
-            itemsets)
+        # Python 2 - dictionary is sorted by key value (?)
+        # self.assertEqual([['25'], ['52', '25'], ['274'], ['71'], ['52']], itemsets)
+        # Python 3 - dictionary is sorted by insertion order (?)
+        self.assertEqual([['52'], ['274'], ['25'], ['52', '25'], ['71']], itemsets)
 
 if __name__ == '__main__':
     unittest.main()

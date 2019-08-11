@@ -10,7 +10,6 @@ Basic usage of the module is very simple:
 """
 
 from collections import defaultdict, namedtuple
-from itertools import imap
 
 __author__ = 'Eric Naeseth <eric@naeseth.com>'
 __copyright__ = 'Copyright © 2009 Eric Naeseth'
@@ -40,20 +39,27 @@ def find_frequent_itemsets(transactions, minimum_support, include_support=False)
             items[item] += 1
 
     # Remove infrequent items from the item support dictionary.
-    items = dict((item, support) for item, support in items.iteritems()
+    items = dict((item, support) for item, support in items.items()
         if support >= minimum_support)
 
     # Build our FP-tree. Before any transactions can be added to the tree, they
     # must be stripped of infrequent items and their surviving items must be
     # sorted in decreasing order of frequency.
     def clean_transaction(transaction):
-        transaction = filter(lambda v: v in items, transaction)
-        transaction.sort(key=lambda v: items[v], reverse=True)
+        # transaction = filter(lambda v: v in items, transaction)
+        # transaction.sort(key=lambda v: items[v], reverse=True)
+        # In Python 2 a filter() is just a list. In Python 3 it is a filter object (without
+        # a sort method). In order to simulate Python 2 behavior we need a list.
+        transaction = [v for v in transaction if v in items] # filter items not in 'items'
+        transaction = sorted(list(transaction), key=lambda v: items[v], reverse=True)
         return transaction
 
     master = FPTree()
-    for transaction in imap(clean_transaction, transactions):
+    for transaction in list(map(clean_transaction, transactions)):
         master.add(transaction)
+
+    print('FP-Tree:')
+    master.inspect()
 
     def find_with_suffix(tree, suffix):
         for item, nodes in tree.items():
@@ -132,11 +138,11 @@ class FPTree(object):
 
     def items(self):
         """
-        Generate one 2-tuples for each item represented in the tree. The first
+        Generate one 2-tuple for each item represented in the tree. The first
         element of the tuple is the item itself, and the second element is a
         generator that will yield the nodes in the tree that belong to the item.
         """
-        for item in self._routes.iterkeys():
+        for item in self._routes:
             yield (item, self.nodes(item))
 
     def nodes(self, item):
@@ -167,15 +173,14 @@ class FPTree(object):
         return (collect_path(node) for node in self.nodes(item))
 
     def inspect(self):
-        print 'Tree:'
+        print('Tree:')
         self.root.inspect(1)
 
-        print
-        print 'Routes:'
+        print('\nRoutes:')
         for item, nodes in self.items():
-            print '  %r' % item
+            print('  {}'.format(item))
             for node in nodes:
-                print '    %r' % node
+                print ('    {}'.format(node))
 
 def conditional_tree_from_paths(paths):
     """Build a conditional FP-tree from the given prefix paths."""
@@ -309,10 +314,10 @@ class FPNode(object):
     @property
     def children(self):
         """The nodes that are children of this node."""
-        return tuple(self._children.itervalues())
+        return tuple(iter(self._children.values()))
 
     def inspect(self, depth=0):
-        print ('  ' * depth) + repr(self)
+        print(('  ' * depth) + repr(self))
         for child in self.children:
             child.inspect(depth + 1)
 
@@ -344,7 +349,7 @@ if __name__ == '__main__':
             if options.numeric:
                 transaction = []
                 for item in row:
-                    transaction.append(long(item))
+                    transaction.append(int(item))
                 transactions.append(transaction)
             else:
                 transactions.append(row)
@@ -355,4 +360,4 @@ if __name__ == '__main__':
 
     result = sorted(result, key=lambda i: i[0])
     for itemset, support in result:
-        print str(itemset) + ' ' + str(support)
+        print(str(itemset) + ' ' + str(support))
