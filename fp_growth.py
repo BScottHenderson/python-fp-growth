@@ -32,13 +32,14 @@ def find_frequent_itemsets(transactions, minimum_support, include_support=False)
     """
     items = defaultdict(lambda: 0) # mapping from items to their supports
 
-    # Load the passed-in transactions and count the support that individual
-    # items have.
+    # Load the passed-in transactions and count the support that individual items have.
+    print('Construct initial itemset dictionary ...')
     for transaction in transactions:
         for item in transaction:
             items[item] += 1
 
     # Remove infrequent items from the item support dictionary.
+    print('Remove infrequent items ...')
     items = dict((item, support) for item, support in items.items()
         if support >= minimum_support)
 
@@ -54,6 +55,7 @@ def find_frequent_itemsets(transactions, minimum_support, include_support=False)
         transaction = sorted(list(transaction), key=lambda v: items[v], reverse=True)
         return transaction
 
+    print('Build an FP-Tree ...')
     master = FPTree()
     for transaction in list(map(clean_transaction, transactions)):
         master.add(transaction)
@@ -61,6 +63,7 @@ def find_frequent_itemsets(transactions, minimum_support, include_support=False)
     print('FP-Tree:')
     master.inspect()
 
+    print('Find frequent itemsets ...')
     def find_with_suffix(tree, suffix):
         for item, nodes in tree.items():
             support = sum(n.count for n in nodes)
@@ -345,6 +348,7 @@ if __name__ == '__main__':
 
     transactions = []
     with open(args[0]) as database:
+        print('Read transactions from {} ...'.format(args[0]))
         for row in csv.reader(database):
             if options.numeric:
                 transaction = []
@@ -353,11 +357,15 @@ if __name__ == '__main__':
                 transactions.append(transaction)
             else:
                 transactions.append(row)
+    print('Read {} transactions.'.format(len(transactions)))
 
+    print('Find frequent itemsets ...')
     result = []
     for itemset, support in find_frequent_itemsets(transactions, options.minsup, True):
         result.append((itemset,support))
 
+    print('Sort results ...')
     result = sorted(result, key=lambda i: i[0])
+    print('Results:')
     for itemset, support in result:
         print(str(itemset) + ' ' + str(support))
